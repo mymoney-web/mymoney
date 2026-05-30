@@ -89,11 +89,11 @@ def handle_text(event):
     with ApiClient(configuration) as api_client:
         line_bot_api = MessagingApi(api_client)
 
-        if any(kw in text for kw in ['สรุปอาทิตย์', 'สรุปสัปดาห์', 'สัปดาห์นี้', 'อาทิตย์นี้', 'weekly']):
+        if any(kw in text for kw in ['สรุปอาทิตย์', 'สรุปสัปดาห์', 'สัปดาห์นี้', 'อาทิตย์นี้', 'รายอาทิตย์', 'รายสัปดาห์', 'weekly']):
             rows, total, start, end = get_weekly_summary()
             reply_text = _format_summary('สัปดาห์นี้', rows, total, start, end)
 
-        elif any(kw in text for kw in ['สรุปเดือน', 'เดือนนี้', 'monthly']):
+        elif any(kw in text for kw in ['สรุปเดือน', 'เดือนนี้', 'รายเดือน', 'monthly']):
             rows, total, start, end = get_monthly_summary()
             reply_text = _format_summary('เดือนนี้', rows, total, start, end)
 

@@ -2,7 +2,12 @@
   "permissions": {
     "allow": [
       "Bash(pip install *)",
-      "PowerShell(python --version)"
+      "PowerShell(python --version)",
+      "PowerShell(npm install *)",
+      "PowerShell(railway init *)",
+      "PowerShell(railway whoami *)",
+      "PowerShell(Get-ChildItem *)",
+      "Bash(curl -sf \"https://mymoney-production-932e.up.railway.app/health\")"
     ]
   }
 }
