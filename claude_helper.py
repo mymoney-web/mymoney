@@ -3,9 +3,10 @@ from google.genai import types
 import json
 import os
 import time
+import logging
 from datetime import datetime, timedelta, timezone
 
-
+logger = logging.getLogger(__name__)
 BKK = timezone(timedelta(hours=7))
 
 
@@ -43,6 +44,7 @@ def extract_slip_data(image_bytes: bytes) -> dict | None:
                 ],
             )
             text = response.text.strip()
+            logger.info(f"Gemini raw response: {text[:300]}")
             if text.lower() == 'null':
                 return None
             if text.startswith('```'):
@@ -51,13 +53,16 @@ def extract_slip_data(image_bytes: bytes) -> dict | None:
                 if text.startswith('json'):
                     text = text[4:]
             result = json.loads(text.strip())
+            logger.info(f"Parsed result: {result}")
             if result and isinstance(result, dict):
                 try:
                     result['amount'] = float(str(result.get('amount', 0)).replace(',', '').replace('฿', '').strip())
                 except (ValueError, TypeError):
                     result['amount'] = 0.0
+            logger.info(f"Final amount: {result.get('amount') if result else 'N/A'}")
             return result
         except Exception as e:
+            logger.error(f"extract_slip_data attempt {attempt} error: {e}")
             if attempt == 0 and '429' in str(e):
                 time.sleep(5)
                 continue
