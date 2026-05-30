@@ -30,7 +30,7 @@ def extract_slip_data(image_bytes: bytes) -> dict | None:
 ถ้าไม่ใช่สลิปโอนเงิน ตอบว่า: null"""
 
     response = client.models.generate_content(
-        model='gemini-1.5-flash',
+        model='gemini-2.0-flash',
         contents=[
             types.Part.from_bytes(data=image_bytes, mime_type=media_type),
             prompt,
