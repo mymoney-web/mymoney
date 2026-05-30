@@ -187,23 +187,20 @@ def handle_image(event):
             _reply(line_bot_api, event.reply_token, '❌ ไม่สามารถดาวน์โหลดรูปได้ กรุณาลองใหม่')
             return
 
-        # save image
-        filename = f"{uuid.uuid4().hex}.jpg"
-        with open(os.path.join(UPLOAD_FOLDER, filename), 'wb') as f:
-            f.write(image_bytes)
+        try:
+            filename = f"{uuid.uuid4().hex}.jpg"
+            with open(os.path.join(UPLOAD_FOLDER, filename), 'wb') as f:
+                f.write(image_bytes)
 
-        slip_data = extract_slip_data(image_bytes) or {}
-        tx_id = add_transaction(slip_data, image_path=filename)
-
-        if slip_data.get('amount'):
+            slip_data = extract_slip_data(image_bytes) or {}
+            tx_id = add_transaction(slip_data, image_path=filename)
             msg = make_slip_flex(tx_id, slip_data)
-        else:
-            msg = make_slip_flex(tx_id, slip_data)
-            # still show category buttons even if Gemini couldn't read
-
-        line_bot_api.reply_message(
-            ReplyMessageRequest(reply_token=event.reply_token, messages=[msg])
-        )
+            line_bot_api.reply_message(
+                ReplyMessageRequest(reply_token=event.reply_token, messages=[msg])
+            )
+        except Exception as e:
+            logger.error(f'handle_image error: {e}')
+            _reply(line_bot_api, event.reply_token, '❌ เกิดข้อผิดพลาด กรุณาลองส่งสลิปใหม่อีกครั้ง')
 
 
 @handler.add(PostbackEvent)

@@ -34,11 +34,18 @@ def init_db():
 
 
 def add_transaction(data: dict, image_path: str = None) -> int:
+    today = datetime.now().strftime('%Y-%m-%d')
     with get_conn() as conn:
         cur = conn.execute(
             'INSERT INTO transactions (date, amount, sender, receiver, bank, image_path) VALUES (?, ?, ?, ?, ?, ?)',
-            (data.get('date'), data.get('amount'), data.get('sender'),
-             data.get('receiver'), data.get('bank'), image_path)
+            (
+                data.get('date') or today,
+                data.get('amount') or 0.0,
+                data.get('sender'),
+                data.get('receiver'),
+                data.get('bank'),
+                image_path,
+            )
         )
         conn.commit()
         return cur.lastrowid
