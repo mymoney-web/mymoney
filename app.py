@@ -13,7 +13,7 @@ from linebot.v3.webhooks import MessageEvent, ImageMessageContent, TextMessageCo
 from linebot.v3.exceptions import InvalidSignatureError
 from dotenv import load_dotenv
 from database import (
-    init_db, add_transaction, update_category,
+    init_db, add_transaction, update_category, get_transaction,
     get_all_transactions, get_daily_summary, get_weekly_summary, get_monthly_summary,
 )
 from claude_helper import extract_slip_data
@@ -239,9 +239,12 @@ def handle_postback(event):
 
         if data.startswith('cat:'):
             _, tx_id_str, category = data.split(':', 2)
-            update_category(int(tx_id_str), category)
+            tx_id = int(tx_id_str)
+            update_category(tx_id, category)
+            tx = get_transaction(tx_id)
+            amount = tx[2] if tx else 0
             _reply(line_bot_api, event.reply_token,
-                   f"✅ บันทึกหมวดหมู่ \"{category}\" เรียบร้อยแล้ว")
+                   f"✅ บันทึกเรียบร้อยแล้ว\n💰 ยอด: ฿{amount:,.2f}\n🏷️ หมวดหมู่: {category}")
 
         elif data == 'summary:daily':
             rows, total, start, end = get_daily_summary()
