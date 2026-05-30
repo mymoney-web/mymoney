@@ -14,12 +14,12 @@ def _get_media_type(image_bytes: bytes) -> str:
 
 
 def extract_slip_data(image_bytes: bytes) -> dict | None:
-    client = genai.Client(api_key=os.environ.get('GEMINI_API_KEY'))
+    try:
+        client = genai.Client(api_key=os.environ.get('GEMINI_API_KEY'))
+        today = datetime.now().strftime('%Y-%m-%d')
+        media_type = _get_media_type(image_bytes)
 
-    today = datetime.now().strftime('%Y-%m-%d')
-    media_type = _get_media_type(image_bytes)
-
-    prompt = f"""อ่านข้อมูลจากสลิปโอนเงินนี้ ตอบเป็น JSON เท่านั้น ไม่มีข้อความอื่น:
+        prompt = f"""อ่านข้อมูลจากสลิปโอนเงินนี้ ตอบเป็น JSON เท่านั้น ไม่มีข้อความอื่น:
 {{
   "date": "YYYY-MM-DD (วันที่ในสลิป ถ้าไม่มีให้ใช้ {today})",
   "amount": 0.00,
@@ -29,15 +29,14 @@ def extract_slip_data(image_bytes: bytes) -> dict | None:
 }}
 ถ้าไม่ใช่สลิปโอนเงิน ตอบว่า: null"""
 
-    response = client.models.generate_content(
-        model='gemini-2.0-flash',
-        contents=[
-            types.Part.from_bytes(data=image_bytes, mime_type=media_type),
-            prompt,
-        ],
-    )
+        response = client.models.generate_content(
+            model='gemini-2.0-flash',
+            contents=[
+                types.Part.from_bytes(data=image_bytes, mime_type=media_type),
+                prompt,
+            ],
+        )
 
-    try:
         text = response.text.strip()
         if text.lower() == 'null':
             return None
@@ -47,5 +46,5 @@ def extract_slip_data(image_bytes: bytes) -> dict | None:
             if text.startswith('json'):
                 text = text[4:]
         return json.loads(text.strip())
-    except (json.JSONDecodeError, IndexError):
+    except Exception:
         return None
