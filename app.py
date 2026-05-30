@@ -30,7 +30,7 @@ DB_PATH = os.environ.get('DB_PATH', 'mymoney.db')
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(DB_PATH)), 'uploads')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-CATEGORIES = ['ค่ารถ', 'ค่าอาหาร', 'ค่าสินค้า', 'ค่าออฟฟิศ', 'อื่นๆ']
+CATEGORIES = ['ค่ารถ', 'ค่าอาหาร', 'ค่าสินค้า', 'ค่าออฟฟิศ', 'ค่าเหล้า', 'เซเว่น', 'เสื้อผ้า', 'อื่นๆ']
 
 init_db()
 
