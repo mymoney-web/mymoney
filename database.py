@@ -14,30 +14,55 @@ def init_db():
         conn.execute('''
             CREATE TABLE IF NOT EXISTS transactions (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                date TEXT NOT NULL,
-                amount REAL NOT NULL,
+                date TEXT,
+                amount REAL,
                 sender TEXT,
                 receiver TEXT,
                 bank TEXT,
+                category TEXT,
+                image_path TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
+        # migrate existing table ถ้ายังไม่มีคอลัมน์ใหม่
+        for col in ('category', 'image_path'):
+            try:
+                conn.execute(f'ALTER TABLE transactions ADD COLUMN {col} TEXT')
+            except sqlite3.OperationalError:
+                pass
         conn.commit()
 
 
-def add_transaction(data: dict):
+def add_transaction(data: dict, image_path: str = None) -> int:
     with get_conn() as conn:
-        conn.execute(
-            'INSERT INTO transactions (date, amount, sender, receiver, bank) VALUES (?, ?, ?, ?, ?)',
-            (
-                data.get('date'),
-                data.get('amount'),
-                data.get('sender'),
-                data.get('receiver'),
-                data.get('bank'),
-            )
+        cur = conn.execute(
+            'INSERT INTO transactions (date, amount, sender, receiver, bank, image_path) VALUES (?, ?, ?, ?, ?, ?)',
+            (data.get('date'), data.get('amount'), data.get('sender'),
+             data.get('receiver'), data.get('bank'), image_path)
         )
         conn.commit()
+        return cur.lastrowid
+
+
+def update_category(tx_id: int, category: str):
+    with get_conn() as conn:
+        conn.execute('UPDATE transactions SET category = ? WHERE id = ?', (category, tx_id))
+        conn.commit()
+
+
+def get_transaction(tx_id: int):
+    with get_conn() as conn:
+        return conn.execute(
+            'SELECT id, date, amount, sender, receiver, bank, category, image_path FROM transactions WHERE id = ?',
+            (tx_id,)
+        ).fetchone()
+
+
+def get_all_transactions():
+    with get_conn() as conn:
+        return conn.execute(
+            'SELECT id, date, amount, sender, bank, category, image_path FROM transactions ORDER BY created_at DESC'
+        ).fetchall()
 
 
 def _fetch_summary(start: str, end: str):
