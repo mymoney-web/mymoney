@@ -22,14 +22,15 @@ def extract_slip_data(image_bytes: bytes) -> dict | None:
     today = datetime.now(BKK).strftime('%Y-%m-%d')
     media_type = _get_media_type(image_bytes)
 
-    prompt = f"""อ่านข้อมูลจากสลิปโอนเงินนี้ ตอบเป็น JSON เท่านั้น ไม่มีข้อความอื่น:
+    prompt = f"""อ่านข้อมูลจากสลิปโอนเงินนี้ ตอบเป็น JSON เท่านั้น ไม่มีข้อความอื่น ไม่มี markdown:
 {{
   "date": "YYYY-MM-DD (วันที่ในสลิป ถ้าไม่มีให้ใช้ {today})",
-  "amount": 0.00,
+  "amount": 500.00,
   "sender": "ชื่อผู้โอน หรือ null",
   "receiver": "ชื่อผู้รับ หรือ null",
   "bank": "ชื่อธนาคาร หรือ null"
 }}
+หมายเหตุ: amount ต้องเป็นตัวเลขเท่านั้น ไม่มีสัญลักษณ์ ไม่มีเครื่องหมาย ไม่มี comma เช่น 500.00 หรือ 1200.50
 ถ้าไม่ใช่สลิปโอนเงิน ตอบว่า: null"""
 
     for attempt in range(2):
@@ -49,7 +50,13 @@ def extract_slip_data(image_bytes: bytes) -> dict | None:
                 text = parts[1]
                 if text.startswith('json'):
                     text = text[4:]
-            return json.loads(text.strip())
+            result = json.loads(text.strip())
+            if result and isinstance(result, dict):
+                try:
+                    result['amount'] = float(str(result.get('amount', 0)).replace(',', '').replace('฿', '').strip())
+                except (ValueError, TypeError):
+                    result['amount'] = 0.0
+            return result
         except Exception as e:
             if attempt == 0 and '429' in str(e):
                 time.sleep(5)
