@@ -85,6 +85,12 @@ def _fetch_summary(start: str, end: str):
     return rows, total
 
 
+def get_daily_summary():
+    today = datetime.now().strftime('%Y-%m-%d')
+    rows, total = _fetch_summary(today, today)
+    return rows, total, today, today
+
+
 def get_weekly_summary():
     today = datetime.now()
     start = (today - timedelta(days=today.weekday())).strftime('%Y-%m-%d')

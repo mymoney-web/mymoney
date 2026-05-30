@@ -14,7 +14,7 @@ from linebot.v3.exceptions import InvalidSignatureError
 from dotenv import load_dotenv
 from database import (
     init_db, add_transaction, update_category,
-    get_all_transactions, get_weekly_summary, get_monthly_summary,
+    get_all_transactions, get_daily_summary, get_weekly_summary, get_monthly_summary,
 )
 from claude_helper import extract_slip_data
 
@@ -97,6 +97,33 @@ def make_slip_flex(tx_id: int, slip_data: dict) -> FlexMessage:
         ),
     )
     return FlexMessage(alt_text='เลือกหมวดหมู่ค่าใช้จ่าย', contents=bubble)
+
+
+def make_menu_flex() -> FlexMessage:
+    bubble = FlexBubble(
+        body=FlexBox(
+            layout='vertical',
+            spacing='md',
+            contents=[
+                FlexText(text='📊 สรุปค่าใช้จ่าย', weight='bold', size='lg'),
+                FlexText(text='เลือกช่วงเวลาที่ต้องการ', size='sm', color='#888888'),
+                FlexSeparator(margin='md'),
+                FlexButton(
+                    action=PostbackAction(label='📅 รายวัน', data='summary:daily', display_text='สรุปรายวัน'),
+                    style='primary', height='sm', margin='md',
+                ),
+                FlexButton(
+                    action=PostbackAction(label='📆 รายอาทิตย์', data='summary:weekly', display_text='สรุปรายอาทิตย์'),
+                    style='primary', height='sm',
+                ),
+                FlexButton(
+                    action=PostbackAction(label='🗓️ รายเดือน', data='summary:monthly', display_text='สรุปรายเดือน'),
+                    style='primary', height='sm',
+                ),
+            ],
+        )
+    )
+    return FlexMessage(alt_text='เลือกช่วงเวลาสรุปค่าใช้จ่าย', contents=bubble)
 
 
 def make_summary_flex(label: str, rows, total: float, start: str, end: str) -> FlexMessage:
@@ -215,6 +242,27 @@ def handle_postback(event):
             _reply(line_bot_api, event.reply_token,
                    f"✅ บันทึกหมวดหมู่ \"{category}\" เรียบร้อยแล้ว")
 
+        elif data == 'summary:daily':
+            rows, total, start, end = get_daily_summary()
+            msg = make_summary_flex('วันนี้', rows, total, start, end)
+            line_bot_api.reply_message(
+                ReplyMessageRequest(reply_token=event.reply_token, messages=[msg])
+            )
+
+        elif data == 'summary:weekly':
+            rows, total, start, end = get_weekly_summary()
+            msg = make_summary_flex('สัปดาห์นี้', rows, total, start, end)
+            line_bot_api.reply_message(
+                ReplyMessageRequest(reply_token=event.reply_token, messages=[msg])
+            )
+
+        elif data == 'summary:monthly':
+            rows, total, start, end = get_monthly_summary()
+            msg = make_summary_flex('เดือนนี้', rows, total, start, end)
+            line_bot_api.reply_message(
+                ReplyMessageRequest(reply_token=event.reply_token, messages=[msg])
+            )
+
 
 @handler.add(MessageEvent, message=TextMessageContent)
 def handle_text(event):
@@ -222,7 +270,13 @@ def handle_text(event):
     with ApiClient(configuration) as api_client:
         line_bot_api = MessagingApi(api_client)
 
-        if any(kw in text for kw in ['สรุปอาทิตย์', 'สรุปสัปดาห์', 'สัปดาห์นี้', 'อาทิตย์นี้', 'รายอาทิตย์', 'รายสัปดาห์', 'weekly']):
+        if text == '.':
+            msg = make_menu_flex()
+            line_bot_api.reply_message(
+                ReplyMessageRequest(reply_token=event.reply_token, messages=[msg])
+            )
+
+        elif any(kw in text for kw in ['สรุปอาทิตย์', 'สรุปสัปดาห์', 'สัปดาห์นี้', 'อาทิตย์นี้', 'รายอาทิตย์', 'รายสัปดาห์', 'weekly']):
             rows, total, start, end = get_weekly_summary()
             msg = make_summary_flex('สัปดาห์นี้', rows, total, start, end)
             line_bot_api.reply_message(
