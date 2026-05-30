@@ -2,7 +2,11 @@ from google import genai
 from google.genai import types
 import json
 import os
-from datetime import datetime
+import time
+from datetime import datetime, timedelta, timezone
+
+
+BKK = timezone(timedelta(hours=7))
 
 
 def _get_media_type(image_bytes: bytes) -> str:
@@ -14,12 +18,11 @@ def _get_media_type(image_bytes: bytes) -> str:
 
 
 def extract_slip_data(image_bytes: bytes) -> dict | None:
-    try:
-        client = genai.Client(api_key=os.environ.get('GEMINI_API_KEY'))
-        today = datetime.now().strftime('%Y-%m-%d')
-        media_type = _get_media_type(image_bytes)
+    client = genai.Client(api_key=os.environ.get('GEMINI_API_KEY'))
+    today = datetime.now(BKK).strftime('%Y-%m-%d')
+    media_type = _get_media_type(image_bytes)
 
-        prompt = f"""อ่านข้อมูลจากสลิปโอนเงินนี้ ตอบเป็น JSON เท่านั้น ไม่มีข้อความอื่น:
+    prompt = f"""อ่านข้อมูลจากสลิปโอนเงินนี้ ตอบเป็น JSON เท่านั้น ไม่มีข้อความอื่น:
 {{
   "date": "YYYY-MM-DD (วันที่ในสลิป ถ้าไม่มีให้ใช้ {today})",
   "amount": 0.00,
@@ -29,22 +32,26 @@ def extract_slip_data(image_bytes: bytes) -> dict | None:
 }}
 ถ้าไม่ใช่สลิปโอนเงิน ตอบว่า: null"""
 
-        response = client.models.generate_content(
-            model='gemini-2.0-flash',
-            contents=[
-                types.Part.from_bytes(data=image_bytes, mime_type=media_type),
-                prompt,
-            ],
-        )
-
-        text = response.text.strip()
-        if text.lower() == 'null':
+    for attempt in range(2):
+        try:
+            response = client.models.generate_content(
+                model='gemini-2.0-flash',
+                contents=[
+                    types.Part.from_bytes(data=image_bytes, mime_type=media_type),
+                    prompt,
+                ],
+            )
+            text = response.text.strip()
+            if text.lower() == 'null':
+                return None
+            if text.startswith('```'):
+                parts = text.split('```')
+                text = parts[1]
+                if text.startswith('json'):
+                    text = text[4:]
+            return json.loads(text.strip())
+        except Exception as e:
+            if attempt == 0 and '429' in str(e):
+                time.sleep(5)
+                continue
             return None
-        if text.startswith('```'):
-            parts = text.split('```')
-            text = parts[1]
-            if text.startswith('json'):
-                text = text[4:]
-        return json.loads(text.strip())
-    except Exception:
-        return None

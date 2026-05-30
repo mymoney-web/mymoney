@@ -1,8 +1,13 @@
 import sqlite3
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 DB_PATH = os.environ.get('DB_PATH', 'mymoney.db')
+BKK = timezone(timedelta(hours=7))  # Bangkok UTC+7
+
+
+def _now():
+    return datetime.now(BKK)
 
 
 def get_conn():
@@ -24,7 +29,6 @@ def init_db():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
-        # migrate existing table ถ้ายังไม่มีคอลัมน์ใหม่
         for col in ('category', 'image_path'):
             try:
                 conn.execute(f'ALTER TABLE transactions ADD COLUMN {col} TEXT')
@@ -34,7 +38,7 @@ def init_db():
 
 
 def add_transaction(data: dict, image_path: str = None) -> int:
-    today = datetime.now().strftime('%Y-%m-%d')
+    today = _now().strftime('%Y-%m-%d')
     with get_conn() as conn:
         cur = conn.execute(
             'INSERT INTO transactions (date, amount, sender, receiver, bank, image_path) VALUES (?, ?, ?, ?, ?, ?)',
@@ -75,7 +79,7 @@ def get_all_transactions():
 def _fetch_summary(start: str, end: str):
     with get_conn() as conn:
         rows = conn.execute(
-            'SELECT date, amount, sender FROM transactions WHERE date >= ? AND date <= ? ORDER BY date DESC',
+            'SELECT date, amount, sender, category FROM transactions WHERE date >= ? AND date <= ? ORDER BY date DESC',
             (start, end)
         ).fetchall()
         total = conn.execute(
@@ -86,26 +90,26 @@ def _fetch_summary(start: str, end: str):
 
 
 def get_daily_summary():
-    today = datetime.now().strftime('%Y-%m-%d')
+    today = _now().strftime('%Y-%m-%d')
     rows, total = _fetch_summary(today, today)
     return rows, total, today, today
 
 
 def get_weekly_summary():
-    today = datetime.now()
-    start = (today - timedelta(days=today.weekday())).strftime('%Y-%m-%d')
-    end = (today + timedelta(days=6 - today.weekday())).strftime('%Y-%m-%d')
+    now = _now()
+    start = (now - timedelta(days=now.weekday())).strftime('%Y-%m-%d')
+    end = (now + timedelta(days=6 - now.weekday())).strftime('%Y-%m-%d')
     rows, total = _fetch_summary(start, end)
     return rows, total, start, end
 
 
 def get_monthly_summary():
-    today = datetime.now()
-    start = today.replace(day=1).strftime('%Y-%m-%d')
-    if today.month == 12:
-        end = today.replace(year=today.year + 1, month=1, day=1) - timedelta(days=1)
+    now = _now()
+    start = now.replace(day=1).strftime('%Y-%m-%d')
+    if now.month == 12:
+        end = now.replace(year=now.year + 1, month=1, day=1) - timedelta(days=1)
     else:
-        end = today.replace(month=today.month + 1, day=1) - timedelta(days=1)
+        end = now.replace(month=now.month + 1, day=1) - timedelta(days=1)
     end = end.strftime('%Y-%m-%d')
     rows, total = _fetch_summary(start, end)
     return rows, total, start, end

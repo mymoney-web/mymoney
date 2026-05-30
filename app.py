@@ -142,15 +142,16 @@ def make_summary_flex(label: str, rows, total: float, start: str, end: str) -> F
         return FlexMessage(alt_text=f'สรุป{label}', contents=bubble)
 
     item_rows = []
-    for date, amount, sender in rows:
+    for date, amount, sender, category in rows:
         sender_text = sender or 'ไม่ระบุ'
+        cat_text = f'[{category}]' if category else '[ยังไม่ระบุ]'
         item_rows.append(
             FlexBox(
                 layout='horizontal',
                 contents=[
-                    FlexText(text=date or '-', size='xs', color='#888888', flex=3),
-                    FlexText(text=sender_text, size='xs', flex=4, wrap=True),
-                    FlexText(text=f'฿{amount:,.0f}', size='xs', align='end', flex=3),
+                    FlexText(text=date or '-', size='xs', color='#888888', flex=2),
+                    FlexText(text=cat_text, size='xs', color='#0066cc', flex=3, wrap=True),
+                    FlexText(text=f'฿{amount:,.0f}', size='xs', align='end', flex=2, weight='bold'),
                 ],
             )
         )
