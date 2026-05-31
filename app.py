@@ -51,8 +51,11 @@ def make_slip_flex(tx_id: int, slip_data: dict) -> FlexMessage:
     info_rows = []
     if slip_data.get('date'):
         info_rows.append(_make_row('📅 วันที่', slip_data['date']))
-    if slip_data.get('amount'):
-        info_rows.append(_make_row('💰 ยอด', f"฿{slip_data['amount']:,.2f}"))
+    amount = slip_data.get('amount')
+    if amount is not None:
+        info_rows.append(_make_row('💰 ยอด', f"฿{amount:,.2f}"))
+    else:
+        info_rows.append(_make_row('💰 ยอด', '⚠️ อ่านไม่ได้ กรุณาระบุเอง'))
     if slip_data.get('sender'):
         info_rows.append(_make_row('👤 ผู้โอน', slip_data['sender']))
     if slip_data.get('bank'):

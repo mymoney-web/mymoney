@@ -55,10 +55,15 @@ def extract_slip_data(image_bytes: bytes) -> dict | None:
             result = json.loads(text.strip())
             logger.info(f"Parsed result: {result}")
             if result and isinstance(result, dict):
+                raw_amount = result.get('amount')
                 try:
-                    result['amount'] = float(str(result.get('amount', 0)).replace(',', '').replace('฿', '').strip())
+                    if raw_amount is None or str(raw_amount).lower() in ('null', 'none', ''):
+                        result['amount'] = None
+                    else:
+                        result['amount'] = float(str(raw_amount).replace(',', '').replace('฿', '').strip())
                 except (ValueError, TypeError):
-                    result['amount'] = 0.0
+                    logger.warning(f"Cannot parse amount: {raw_amount!r}")
+                    result['amount'] = None
             logger.info(f"Final amount: {result.get('amount') if result else 'N/A'}")
             return result
         except Exception as e:
