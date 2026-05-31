@@ -44,7 +44,7 @@ def add_transaction(data: dict, image_path: str = None) -> int:
             'INSERT INTO transactions (date, amount, sender, receiver, bank, image_path) VALUES (?, ?, ?, ?, ?, ?)',
             (
                 data.get('date') or today,
-                data.get('amount'),
+                data.get('amount') or 0.0,
                 data.get('sender'),
                 data.get('receiver'),
                 data.get('bank'),
